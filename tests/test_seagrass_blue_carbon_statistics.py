@@ -89,6 +89,7 @@ class SeagrassBlueCarbonStatisticsTest(unittest.TestCase):
     def test_fails_when_required_columns_are_missing(self):
         scenarios = [
             (["site", "species", "biomass_g_m2"], [["Sumber Kima", "Enhalus acoroides", 825]]),
+            (["site", "species"], [["Sumber Kima", "Enhalus acoroides"]]),
             (["site"], [["Sumber Kima"]]),
             (["notes"], [["incomplete workbook"]]),
         ]
@@ -128,6 +129,62 @@ class SeagrassBlueCarbonStatisticsTest(unittest.TestCase):
 
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("negative biomass_g_m2", result.stderr)
+
+    def test_fails_for_invalid_field_values(self):
+        scenarios = [
+            (
+                "carbon fraction below range",
+                ["site", "species", "biomass_g_m2", "carbon_fraction"],
+                [["Sumber Kima", "Enhalus acoroides", 825, -0.1]],
+                "carbon_fraction outside the range 0-1",
+            ),
+            (
+                "carbon fraction above range",
+                ["site", "species", "biomass_g_m2", "carbon_fraction"],
+                [["Sumber Kima", "Enhalus acoroides", 825, 1.5]],
+                "carbon_fraction outside the range 0-1",
+            ),
+            (
+                "negative area",
+                ["site", "species", "biomass_g_m2", "carbon_fraction", "area_ha"],
+                [["Sumber Kima", "Enhalus acoroides", 825, 0.36, -1]],
+                "negative area_ha",
+            ),
+            (
+                "non numeric biomass",
+                ["site", "species", "biomass_g_m2", "carbon_fraction"],
+                [["Sumber Kima", "Enhalus acoroides", "invalid", 0.36]],
+                "non-numeric value for biomass_g_m2",
+            ),
+            (
+                "empty site",
+                ["site", "species", "biomass_g_m2", "carbon_fraction"],
+                [["   ", "Enhalus acoroides", 825, 0.36]],
+                "non-empty site and species",
+            ),
+            (
+                "empty species",
+                ["site", "species", "biomass_g_m2", "carbon_fraction"],
+                [["Sumber Kima", "   ", 825, 0.36]],
+                "non-empty site and species",
+            ),
+        ]
+        for index, (name, headers, rows, expected_error) in enumerate(scenarios, start=1):
+            with self.subTest(name=name):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    temp_path = Path(temp_dir)
+                    input_path = temp_path / f"invalid-values-{index}.xlsx"
+                    self.create_workbook(input_path, headers, rows)
+
+                    result = subprocess.run(
+                        ["python", str(SCRIPT_PATH), str(input_path)],
+                        capture_output=True,
+                        text=True,
+                        check=False,
+                    )
+
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn(expected_error, result.stderr)
 
 
 if __name__ == "__main__":
