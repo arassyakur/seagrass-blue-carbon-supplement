@@ -66,8 +66,11 @@ class SeagrassBlueCarbonStatisticsTest(unittest.TestCase):
                 ],
             )
             enriched = workbook["observations_enriched"]
-            self.assertAlmostEqual(enriched["J2"].value, 2.97)
-            self.assertAlmostEqual(enriched["K2"].value, 4.455)
+            headers = [cell.value for cell in enriched[1]]
+            carbon_stock_index = headers.index("carbon_stock_mg_c_ha") + 1
+            total_carbon_index = headers.index("total_carbon_mg_c") + 1
+            self.assertAlmostEqual(enriched.cell(row=2, column=carbon_stock_index).value, 2.97)
+            self.assertAlmostEqual(enriched.cell(row=2, column=total_carbon_index).value, 4.455)
 
     def test_fails_when_required_columns_are_missing(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -88,6 +91,26 @@ class SeagrassBlueCarbonStatisticsTest(unittest.TestCase):
 
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("missing required columns", result.stderr)
+
+    def test_fails_when_biomass_is_negative(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            input_path = temp_path / "negative-biomass.xlsx"
+            self.create_workbook(
+                input_path,
+                ["site", "species", "biomass_g_m2", "carbon_fraction"],
+                [["Sumber Kima", "Enhalus acoroides", -1, 0.36]],
+            )
+
+            result = subprocess.run(
+                ["python", str(SCRIPT_PATH), str(input_path)],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("negative biomass_g_m2", result.stderr)
 
 
 if __name__ == "__main__":

@@ -95,6 +95,8 @@ def load_observations(workbook_path: Path) -> list[dict[str, object]]:
         carbon_fraction = parse_number(
             observation["carbon_fraction"], row_number, "carbon_fraction"
         )
+        if biomass < 0:
+            raise WorkbookValidationError(f"Row {row_number} has a negative biomass_g_m2.")
         if not 0 <= carbon_fraction <= 1:
             raise WorkbookValidationError(
                 f"Row {row_number} has carbon_fraction outside the range 0-1."
