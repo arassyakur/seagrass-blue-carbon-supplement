@@ -2,6 +2,7 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from typing import Any
 
 from openpyxl import Workbook, load_workbook
 
@@ -11,7 +12,7 @@ SCRIPT_PATH = REPO_ROOT / "Seagrass_blue_carbon_statistics_v1.0.py"
 
 
 class SeagrassBlueCarbonStatisticsTest(unittest.TestCase):
-    def create_workbook(self, path: Path, headers, rows):
+    def create_workbook(self, path: Path, headers: list[str], rows: list[list[Any]]) -> None:
         workbook = Workbook()
         sheet = workbook.active
         sheet.title = "observations"
@@ -71,9 +72,9 @@ class SeagrassBlueCarbonStatisticsTest(unittest.TestCase):
             total_carbon_index = headers.index("total_carbon_mg_c") + 1
             # carbon_stock = biomass_g_m2 * carbon_fraction * 0.01; total_carbon = stock * area_ha
             expected_values = {
-                2: (2.97, 4.455),
-                3: (2.176, 3.264),
-                4: (1.4105, 2.821),
+                2: (2.97, 4.455),  # 825 * 0.36 * 0.01; 2.97 * 1.5
+                3: (2.176, 3.264),  # 640 * 0.34 * 0.01; 2.176 * 1.5
+                4: (1.4105, 2.821),  # 455 * 0.31 * 0.01; 1.4105 * 2.0
             }
             for row_number, (expected_stock, expected_total) in expected_values.items():
                 self.assertAlmostEqual(

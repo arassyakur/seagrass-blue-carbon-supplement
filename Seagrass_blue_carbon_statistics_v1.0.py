@@ -114,7 +114,6 @@ def load_observations(workbook_path: Path) -> list[dict[str, object]]:
         cleaned = {
             column: observation.get(column)
             for column in (*REQUIRED_COLUMNS, *OPTIONAL_COLUMNS)
-            if column in observation or column in OPTIONAL_COLUMNS
         }
         cleaned["biomass_g_m2"] = biomass
         cleaned["carbon_fraction"] = carbon_fraction
