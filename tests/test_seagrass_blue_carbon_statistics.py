@@ -69,6 +69,7 @@ class SeagrassBlueCarbonStatisticsTest(unittest.TestCase):
             headers = [cell.value for cell in enriched[1]]
             carbon_stock_index = headers.index("carbon_stock_mg_c_ha") + 1
             total_carbon_index = headers.index("total_carbon_mg_c") + 1
+            # carbon_stock = biomass_g_m2 * carbon_fraction * 0.01; total_carbon = stock * area_ha
             expected_values = {
                 2: (2.97, 4.455),
                 3: (2.176, 3.264),
