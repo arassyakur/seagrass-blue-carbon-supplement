@@ -13,6 +13,7 @@ from openpyxl import Workbook, load_workbook
 
 REQUIRED_COLUMNS = ("site", "species", "biomass_g_m2", "carbon_fraction")
 OPTIONAL_COLUMNS = ("station", "transect", "sample_id", "area_ha", "notes")
+GRAMS_PER_SQUARE_METER_TO_MEGAGRAMS_PER_HECTARE = 0.01
 SUMMARY_HEADERS = (
     "group",
     "sample_count",
@@ -109,7 +110,9 @@ def load_observations(workbook_path: Path) -> list[dict[str, object]]:
             if parsed_area < 0:
                 raise WorkbookValidationError(f"Row {row_number} has a negative area_ha.")
 
-        carbon_stock = biomass * carbon_fraction * 0.01
+        carbon_stock = (
+            biomass * carbon_fraction * GRAMS_PER_SQUARE_METER_TO_MEGAGRAMS_PER_HECTARE
+        )
         total_carbon = carbon_stock * parsed_area if parsed_area is not None else None
 
         cleaned = {
