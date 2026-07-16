@@ -69,28 +69,43 @@ class SeagrassBlueCarbonStatisticsTest(unittest.TestCase):
             headers = [cell.value for cell in enriched[1]]
             carbon_stock_index = headers.index("carbon_stock_mg_c_ha") + 1
             total_carbon_index = headers.index("total_carbon_mg_c") + 1
-            self.assertAlmostEqual(enriched.cell(row=2, column=carbon_stock_index).value, 2.97)
-            self.assertAlmostEqual(enriched.cell(row=2, column=total_carbon_index).value, 4.455)
+            expected_values = {
+                2: (2.97, 4.455),
+                3: (2.176, 3.264),
+                4: (1.4105, 2.821),
+            }
+            for row_number, (expected_stock, expected_total) in expected_values.items():
+                self.assertAlmostEqual(
+                    enriched.cell(row=row_number, column=carbon_stock_index).value,
+                    expected_stock,
+                )
+                self.assertAlmostEqual(
+                    enriched.cell(row=row_number, column=total_carbon_index).value,
+                    expected_total,
+                )
 
     def test_fails_when_required_columns_are_missing(self):
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_path = Path(temp_dir)
-            input_path = temp_path / "invalid.xlsx"
-            self.create_workbook(
-                input_path,
-                ["site", "species", "biomass_g_m2"],
-                [["Sumber Kima", "Enhalus acoroides", 825]],
-            )
+        scenarios = [
+            (["site", "species", "biomass_g_m2"], [["Sumber Kima", "Enhalus acoroides", 825]]),
+            (["site"], [["Sumber Kima"]]),
+            (["notes"], [["incomplete workbook"]]),
+        ]
+        for index, (headers, rows) in enumerate(scenarios, start=1):
+            with self.subTest(headers=headers):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    temp_path = Path(temp_dir)
+                    input_path = temp_path / f"invalid-{index}.xlsx"
+                    self.create_workbook(input_path, headers, rows)
 
-            result = subprocess.run(
-                ["python", str(SCRIPT_PATH), str(input_path)],
-                capture_output=True,
-                text=True,
-                check=False,
-            )
+                    result = subprocess.run(
+                        ["python", str(SCRIPT_PATH), str(input_path)],
+                        capture_output=True,
+                        text=True,
+                        check=False,
+                    )
 
-            self.assertNotEqual(result.returncode, 0)
-            self.assertIn("missing required columns", result.stderr)
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn("missing required columns", result.stderr)
 
     def test_fails_when_biomass_is_negative(self):
         with tempfile.TemporaryDirectory() as temp_dir:

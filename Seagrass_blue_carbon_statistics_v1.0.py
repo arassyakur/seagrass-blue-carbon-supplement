@@ -60,14 +60,12 @@ def load_observations(workbook_path: Path) -> list[dict[str, object]]:
         raise WorkbookValidationError("The workbook does not contain a header row.")
 
     header_lookup: dict[str, int] = {}
-    ordered_headers: list[str] = []
     for index, cell_value in enumerate(header_row):
         normalized = normalize_header(cell_value)
         if not normalized:
             continue
         if normalized not in header_lookup:
             header_lookup[normalized] = index
-            ordered_headers.append(normalized)
 
     missing = [column for column in REQUIRED_COLUMNS if column not in header_lookup]
     if missing:
